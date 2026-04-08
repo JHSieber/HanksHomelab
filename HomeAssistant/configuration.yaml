@@ -1,0 +1,87 @@
+
+# Loads default set of integrations. Do not remove.
+default_config:
+
+homeassistant:
+  allowlist_external_dirs:
+    - "/media"
+
+downloader:
+  download_dir: www
+
+python_script:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+spotcast:
+  sp_dc: !secret henry_sp_dc
+  sp_key: !secret henry_sp_key
+  
+
+#Set up all MQTT topics for sensors to publish to   
+mqtt:
+  sensor:
+    - name: "GreenHouse Temp"
+      state_topic: "home/esp32/temperature/greenhouse"
+      unit_of_measurement: "°F" 
+      device_class: temperature
+
+    - name: "GreenHouse Hum"
+      state_topic: "home/esp32/humidity/greenhouse"
+      unit_of_measurement: "%"
+      device_class: humidity
+      
+    - name: "Dungeon Temp"
+      state_topic: "home/esp32/temperature/dungeon"
+      unit_of_measurement: "°F" 
+      device_class: temperature
+
+    - name: "Dungeon Hum"
+      state_topic: "home/esp32/humidity/dungeon"
+      unit_of_measurement: "%"
+      device_class: humidity
+      
+    - name: "Doorbell Button"
+      state_topic: "home/doorbell"
+      
+rest_command:
+  reolink_snapshot:
+    url: 'http://192.168.xx.xx/cgi-bin/api.cgi?cmd=Snap&channel=0&rs={{ timestamp }}&user=user@xxxxxxx.com&password={{ !secret reolink_password }}'
+    method: GET
+
+shell_command:
+  save_cam_image: 'cat > /config/www/motion_{{ now().strftime("%Y%m%d_%H%M%S") }}.jpg'
+
+# Commands to capture snapshots through reolink local API and save/name files in the appropriate place for processing    
+shell_command:
+  save_camera_image: 'sh -c "cat > /media/security/cam_{{ now().strftime(\"%Y%m%d_%H%M%S\") }}.jpg"'
+
+  save_session_snapshot: >-
+    curl -s -H "Authorization: Bearer {{ !secret reolink_auth_key }} " 
+    -o "/media/timelapse/session/snapshot_{{ now().strftime('%Y-%m-%d_%H-%M-%S') }}.jpg" 
+    "http://homeassistant.local:xxxx/api/camera_proxy/camera.dh_cam_1_snapshots_clear?token={{ !secret reolink_api_token }}"
+    
+  save_sunrise_snapshot: >-
+    curl -s -H "Authorization: Bearer {{ !secret reolink_auth_key }}" 
+    -o "/media/timelapse/sunrise/snapshot_{{ now().strftime('%Y-%m-%d_%H-%M-%S') }}.jpg" 
+    "http://homeassistant.local:xxxx/api/camera_proxy/camera.dh_cam_1_snapshots_clear?token={{ !secret reolink_api_token }}"
+    
+  save_sunset_snapshot: >-
+    curl -s -H "Authorization: Bearer {{ !secret reolink_auth_key }}" 
+    -o "/media/timelapse/sunset/snapshot_{{ now().strftime('%Y-%m-%d_%H-%M-%S') }}.jpg" 
+    "http://homeassistant.local:xxxx/api/camera_proxy/camera.dh_cam_1_snapshots_clear?token={{ !secret reolink_api_token }}"
+    
+  save_noon_snapshot: >-
+    curl -s -H "Authorization: Bearer {{ !secret reolink_auth_key }}" 
+    -o "/media/timelapse/noon/snapshot_{{ now().strftime('%Y-%m-%d_%H-%M-%S') }}.jpg" 
+    "http://homeassistant.local:xxxx/api/camera_proxy/camera.dh_cam_1_snapshots_clear?token={{ !secret reolink_api_token }}"
+
+# Run shell script stored on unraid server to process a timelapse
+  run_timelapse_processing: >
+    ssh -i /config/.ssh/id_rsa -o IdentitiesOnly=yes -o StrictHostKeyChecking=no user@192.168.xx.xxx '/mnt/user/appdata/timelapse/script'

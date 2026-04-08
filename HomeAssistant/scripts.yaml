@@ -1,0 +1,70 @@
+toggle_living_room_lights:
+  alias: Toggle Living room lights
+  sequence:
+  - choose:
+    - conditions:
+      - condition: device
+        type: is_on
+        device_id: 0e3509a630e2688693f6430a6076fb78
+        entity_id: 53db866bb120d379fa4812245e47309b
+        domain: light
+      sequence:
+      - service: light.turn_off
+        metadata: {}
+        data: {}
+        target:
+          area_id: living_room
+      alias: Any light in area is on
+    - conditions: []
+      sequence:
+      - service: light.turn_on
+        metadata: {}
+        data: {}
+        target:
+          area_id: living_room
+  mode: single
+  icon: mdi:sofa
+toggle_stairway_lights:
+  alias: Toggle Stairway lights
+  sequence:
+  - choose:
+    - conditions:
+      - condition: device
+        type: is_on
+        device_id: 678bc8a1cf634c07bed35a5a07473ad6
+        entity_id: 3b8e607a74ad3dd63feb158ed97ac8cf
+        domain: light
+      - condition: device
+        type: is_on
+        device_id: a43f08ea2ff902876524e3d3ee13a267
+        entity_id: 9d6a3bc669f3c43bbd5348de540e503b
+        domain: light
+      sequence:
+      - service: light.turn_off
+        metadata: {}
+        data: {}
+        target:
+          area_id: stairway
+      alias: Any light in area is on
+    - conditions: []
+      sequence:
+      - service: light.turn_on
+        metadata: {}
+        data: {}
+        target:
+          area_id: stairway
+  mode: single
+  icon: mdi:sofa
+timelapse_test:
+  sequence:
+  - repeat:
+      count: 10
+      sequence:
+      - action: camera.snapshot
+        metadata: {}
+        data:
+          filename: /media/timelapse/reolink_{{ now().timestamp() }}.jpg
+        target:
+          device_id: f1fdea1e9aa39d2e93f8cdfb593c56c2
+  alias: timelapse test
+  description: ''

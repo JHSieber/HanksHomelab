@@ -1,0 +1,473 @@
+- id: '1714759632958'
+  alias: Sunset lights on
+  description: Turn on all lights either 1hr30min or 45mins before sunset depending on local weather forecast. 
+  triggers:
+  - event: sunset
+    offset: -00:45:00
+    trigger: sun
+  - event: sunset
+    offset: -01:30:00
+    trigger: sun
+  conditions:
+  - condition: and
+    conditions: []
+  - condition: or
+    conditions:
+    - condition: and
+      conditions:
+      - condition: sun
+        before: sunset
+        before_offset: -01:00:00
+        #Check if local weather is sunny or any other type (turn on early if it is not sunny)
+      - condition: not
+        conditions:
+        - condition: state
+          entity_id: weather.forecast_home_2
+          attribute: cloud_coverage
+          state:
+          - Sunny
+    - condition: sun
+      before: sunset
+      after: sunset
+      after_offset: -01:00:00
+  #Check away mode stat before taking any actions 
+  - condition: state
+    entity_id: input_boolean.away_mode
+    state:
+    - 'off'
+  actions:
+  - metadata: {}
+    data: {}
+    target:
+      floor_id:
+      - first_floor
+      - second_floor
+    action: light.turn_on
+  - metadata: {}
+    data:
+      option: Evening
+    target: #update phase of day to evening once lights are on.
+      entity_id: input_select.phase_of_day
+    action: input_select.select_option
+  mode: single
+- id: '1714759729802'
+  alias: 1 am lights off
+  description: 'Turn off all lights at 1 am if they have not already been turned off'
+  trigger:
+  - platform: time
+    at: 01:00:00
+  condition: []
+  action:
+  - service: light.turn_off
+    metadata: {}
+    data: {}
+    target:
+      floor_id:
+      - first_floor
+      - second_floor
+  mode: single
+- id: '1719508380437'
+  alias: Movie Mode activate
+  description: 'When tv is turned on and media is playing, turn off lights in the living room' #TODO: get dimmable lightbulbs so lights are not completely turned off.
+  trigger:
+  - platform: device
+    device_id: 7c50847dce2bc82342976a57c9cece09
+    domain: media_player
+    entity_id: 53b7c3bcf4dbbe53d2ebfa58b0724842
+    type: turned_on
+  condition: []
+  action:
+  - service: light.turn_off
+    metadata: {}
+    data: {}
+    target:
+      area_id: living_room
+  mode: single
+- id: '1719508439061'
+  alias: Movie Mode Deactivate
+  description: 'When Media is turned off, turn off movie mode'
+  trigger:
+  - platform: device
+    device_id: 7c50847dce2bc82342976a57c9cece09
+    domain: media_player
+    entity_id: 53b7c3bcf4dbbe53d2ebfa58b0724842
+    type: turned_off
+  condition: #Check if we are in a phase of day where the lights should be on (catches case where movie mode is activated before lights are supposed to turn on then turned off afterwards)
+  - condition: state
+    entity_id: input_select.phase_of_day
+    state: Evening
+  action:
+  - service: light.turn_on
+    metadata: {}
+    data: {}
+    target:
+      area_id: living_room
+  mode: single
+- id: '1719508541146'
+  alias: Afternoon
+  description: Set phase of day to afternoon, no actions to trigger
+  trigger:
+  - platform: time
+    at: '12:00:00'
+  condition: []
+  action:
+  - service: input_select.select_option
+    metadata: {}
+    data:
+      option: Afternoon
+    target:
+      entity_id: input_select.phase_of_day
+  mode: single
+- id: '1719508726863'
+  alias: Morning
+  description: Set phase of day to morning at sunrise
+  trigger:
+  - platform: sun
+    event: sunrise
+    offset: 0
+  condition: []
+  action:
+  - service: input_select.select_option
+    metadata: {}
+    data:
+      option: Morning
+    target:
+      entity_id: input_select.phase_of_day
+  mode: single
+- id: '1737490238963'
+  alias: Keep water main from freezing
+  description: When the water main leak sensor goes below 36 degrees turn on heater
+    until it goes above 38
+  trigger:
+  - type: temperature
+    platform: device
+    device_id: 7409841d68c4e5ca612a7a7e7be17639
+    entity_id: ba60fd34b0a4aebebcb76f002d4c8616
+    domain: sensor
+    below: 37
+  condition:
+  - condition: device #make sure heater is not already on
+    type: is_off
+    device_id: 46d5a141fb69bec7428d160f26e7b2e8
+    entity_id: 7099b44022569ac0d39d7bde6803b545
+    domain: switch
+  action:
+  - type: turn_on
+    device_id: 46d5a141fb69bec7428d160f26e7b2e8
+    entity_id: 7099b44022569ac0d39d7bde6803b545
+    domain: switch
+  - wait_for_trigger: #wait to reach a safe temp before turning off in the same automation flow. Decrease extra running automations
+    - type: temperature
+      platform: device
+      device_id: 7409841d68c4e5ca612a7a7e7be17639
+      entity_id: ba60fd34b0a4aebebcb76f002d4c8616
+      domain: sensor
+      above: 38
+  - type: turn_off
+    device_id: 46d5a141fb69bec7428d160f26e7b2e8
+    entity_id: 7099b44022569ac0d39d7bde6803b545
+    domain: switch
+  mode: single
+
+- id: '1746452019631'
+  alias: Sunrise timelapse
+  description: at sunrise, take a snapshot from attic security cam for long term timelapse
+  triggers:
+  - trigger: sun
+    event: sunrise
+    offset: 01:30:00
+  conditions: []
+  actions:
+  - action: shell_command.save_sunrise_snapshot
+    data: {}
+  mode: single
+
+- id: '1746453071139'
+  alias: Start Timelapse
+  description: Initiates a timelapse from attic security cam, runs until the Timelapse active turns off
+  triggers:
+  - trigger: state
+    entity_id:
+    - input_boolean.timelapse_active
+    to: 'on'
+  conditions: []
+  actions:
+  - repeat:
+      sequence: #Save a snapshot from the camera every 10 seconds and store in a temp timelapse folder for processing.
+      - action: shell_command.save_session_snapshot
+        data: {}
+      - delay:
+          hours: 0
+          minutes: 0
+          seconds: 10
+          milliseconds: 0
+      until:
+      - condition: state
+        entity_id: input_boolean.timelapse_active
+        state: 'off'
+  - action: shell_command.run_timelapse_processing #once state is toggled off, then run timelapse processing script to handle creating a timelapse with the photos before clearing the temp folder to save space
+    data: {}
+  mode: single
+
+- id: '1746561273756'
+  alias: sunset timelapse
+  description: at sunset, take a snapshot from attic cam for timelapse
+  triggers:
+  - trigger: sun
+    event: sunset
+    offset: 0
+  conditions: []
+  actions:
+  - action: shell_command.save_sunset_snapshot
+    data: {}
+  mode: single
+
+- id: '1746561320070'
+  alias: Noon timelapse
+  description: At noon every day take a snapshot for a timelapse
+  triggers:
+  - trigger: time
+    at: '12:00:00'
+  conditions: []
+  actions:
+  - action: shell_command.save_noon_snapshot
+    data: {}
+  mode: single
+  
+- id: '1750365520731'
+  alias: Turn fan on 
+  description: 'Fan in a smart plug outlet tied to temp sensor in my room to automatically vent air out the window when the temp goes above 75 degrees'
+  triggers:
+  - type: temperature
+    device_id: f2b8a65a693109d55c80fc3423307f05
+    entity_id: a368c9c184bfa712808c620bfb663ef9
+    domain: sensor
+    trigger: device
+    above: 75
+  conditions: []
+  actions:
+  - type: turn_on
+    device_id: 70d8133a73057dabed8b5bd8e7fd200c
+    entity_id: 7498495b6af85cd0a1ba5c23535cd58f
+    domain: switch
+  mode: single
+
+- id: '1750365549088'
+  alias: Turn fan off
+  description: ''
+  triggers:
+  - type: temperature
+    device_id: f2b8a65a693109d55c80fc3423307f05
+    entity_id: a368c9c184bfa712808c620bfb663ef9
+    domain: sensor
+    trigger: device
+    below: 75
+  conditions: []
+  actions:
+  - type: turn_off
+    device_id: 70d8133a73057dabed8b5bd8e7fd200c
+    entity_id: 7498495b6af85cd0a1ba5c23535cd58f
+    domain: switch
+  mode: single
+
+- id: '1759506054369'
+  alias: Doorbell press
+  description: 'DIY doorbell, once button is pressed on a microcontroller, call service to play a doorbell sounds playlist on my computer speakers'
+  triggers:
+  - trigger: state
+    entity_id:
+    - sensor.doorbell_button
+    from: unpressed
+    to: pressed
+  conditions: []
+  actions:
+  - device_id: f9209040eb302949a5ff2fd46cb5c93b
+    domain: mobile_app
+    type: notify
+    message: Doorbell button Pressed
+    title: Ding Ding!!
+  - action: media_player.play_media
+    target:
+      entity_id: media_player.spotify_henry_sieber
+    data:
+      media_content_id: spotify:track:6H7RvzoUAblXb8jHNWnF5o
+      media_content_type: spotify://track
+    metadata:
+      title: Doorbell Sounds
+      thumbnail: https://i.scdn.co/image/ab67616d0000b273491b35595a423e41fc8404e1
+      media_class: track
+      children_media_class:
+      navigateIds:
+      - {}
+      - media_content_type: spotify://current_user_playlists
+        media_content_id: current_user_playlists
+      - media_content_type: spotify://playlist
+        media_content_id: spotify:playlist:7mIJJSBmmbvHbOi0FrKTTR
+  mode: single
+- id: '1764911557796'
+  alias: Second floor lights on
+  description: ''
+  triggers: []
+  conditions: []
+  actions:
+  - action: light.turn_on
+    metadata: {}
+    data: {}
+    target:
+      floor_id: second_floor
+  mode: single
+- id: '1764911968318'
+  alias: Second floor lights off
+  description: ''
+  triggers: []
+  conditions: []
+  actions:
+  - action: light.turn_off
+    metadata: {}
+    data: {}
+    target:
+      floor_id: second_floor
+  mode: single
+- id: '1765043832554'
+  alias: First floor lights on
+  description: ''
+  triggers: []
+  conditions: []
+  actions:
+  - action: light.turn_on
+    metadata: {}
+    data: {}
+    target:
+      floor_id: first_floor
+  mode: single
+- id: '1765043887089'
+  alias: 'First floor lights off '
+  description: ''
+  triggers: []
+  conditions: []
+  actions:
+  - action: light.turn_off
+    metadata: {}
+    data: {}
+    target:
+      floor_id: first_floor
+  mode: single
+- id: '1766015662905'
+  alias: Lights  off when Hank leaves
+  description: When Henry leaves, turn off lights in his room
+  triggers:
+  - trigger: zone
+    entity_id: person.henry
+    zone: zone.home
+    event: leave
+  conditions: []
+  actions:
+  - action: light.turn_off
+    metadata: {}
+    target:
+      area_id: henry_s_room
+    data: {}
+  mode: single
+- id: '1766015729855'
+  alias: Lights on  when Hank returns
+  description: When Henry arrives, turn on lights in his room
+  triggers:
+  - trigger: zone
+    entity_id: person.henry
+    zone: zone.home
+    event: enter
+  conditions: []
+  actions:
+  - action: light.turn_on
+    metadata: {}
+    target:
+      area_id: henry_s_room
+    data: {}
+  mode: single
+- id: '1766434971897'
+  alias: Away mode sunset lights on
+  description: When away mode is on, only turn on some lights at sunset
+  triggers:
+  - event: sunset
+    offset: -00:30:00
+    trigger: sun
+  - event: sunset
+    offset: -01:00:00
+    trigger: sun
+  conditions:
+  - condition: and
+    conditions: []
+  - condition: or
+    conditions:
+    - condition: and
+      conditions:
+      - condition: sun
+        before: sunset
+        before_offset: -01:00:00
+      - condition: not
+        conditions:
+        - condition: state
+          entity_id: weather.forecast_home_2
+          attribute: cloud_coverage
+          state:
+          - Sunny
+    - condition: sun
+      before: sunset
+      after: sunset
+      after_offset: -01:00:00
+  - condition: state
+    entity_id: input_boolean.away_mode
+    state:
+    - 'on'
+  actions:
+  - metadata: {}
+    data: {}
+    action: light.turn_on
+    target:
+      entity_id:
+      - light.living_room_lamp
+      - light.book_shelf_lamp
+      - light.cupboard_lamp
+      - light.kitchen_lamp
+  - metadata: {}
+    data:
+      option: Evening
+    target:
+      entity_id: input_select.phase_of_day
+    action: input_select.select_option
+  mode: single
+- id: '1769533243475'
+  alias: ESP32-CAM Save Snapshot
+  triggers:
+  - webhook_id: esp32cam
+    allowed_methods:
+    - POST
+    local_only: true
+    trigger: webhook
+  actions:
+  - action: shell_command.save_cam_image
+    data:
+      stdin: '{{ trigger.data }}'
+- id: '1771566533154'
+  alias: Bedside lamp lights
+  description: 'When power usage increases for my bedside charging lamp, then turn off all lights in my room and set phase of day to night'
+  triggers:
+  - type: power
+    device_id: 310eaab757b9a9a7ef18512690b5b25c
+    entity_id: e2491cbd3e79972fe6e793695ef95376
+    domain: sensor
+    trigger: device
+    above: 0.4
+  conditions:
+  - condition: state
+    entity_id: input_select.phase_of_day
+    state:
+    - Evening
+    - Night
+  actions:
+  - action: light.turn_off
+    metadata: {}
+    target:
+      area_id: henry_s_room
+    data: {}
+  mode: single
