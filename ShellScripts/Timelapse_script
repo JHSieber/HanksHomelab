@@ -1,0 +1,17 @@
+#!/bin/bash
+# Make sure these paths match your SMB mount
+INPUT_DIR="/mnt/remotes/ha_media/timelapse/session"
+OUTPUT_DIR="/mnt/user/Media/timelapse/videos"
+
+docker run --rm --gpus all --runtime=nvidia \
+  -v "$INPUT_DIR":/input \
+  -v "$OUTPUT_DIR":/output \
+  jrottenberg/ffmpeg:4.2-nvidia \
+  -framerate 10 -pattern_type glob -i "/input/*.jpg" \
+  -vf "scale=3840:2160:force_original_aspect_ratio=decrease,pad=3840:2160:(ow-iw)/2:(oh-ih)/2" \
+  -c:v h264_nvenc -preset slow -b:v 15M -pix_fmt yuv420p \
+  "/output/timelapse_$(date +%Y-%m-%d_%H-%M-%S).mp4"
+
+# Remove Session files to save space
+rm /mnt/remotes/ha_media/timelapse/session/*.jpg
+
