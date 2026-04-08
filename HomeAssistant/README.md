@@ -15,7 +15,7 @@ I have my VM configured with 2 pinned cpu cores and 2GBs of RAM. I have enabled 
 
 
 ### States:
-**Away mode:** Boolean for when noone is home so that automations will not turn on any unnecessary devices. Currently manual but I plan to integrate it into presence detection and which devices are connected to the wifi.
+**Away mode:** Boolean for when no one is home so that automations will not turn on any unnecessary devices. Currently manual but I plan to integrate it into presence detection and which devices are connected to the wifi.
 
 **Phase of Day:** [Morning, Afternoon, Evening, Night] Used to change the behavior of the same automation/triggers based on the phase of the day it is currently in. 
 
