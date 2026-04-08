@@ -1,0 +1,162 @@
+# Control panel for carport. Track and display power usage for carport through smart plugs, and provide controls to turn on and off music station and lights when not in use. 
+
+substitutions:
+  name: esphome-web-28e668
+  friendly_name: Outside
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  min_version: 2024.6.0
+  name_add_mac_suffix: false
+  project:
+    name: esphome.web
+    version: '1.0'
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+  level: DEBUG
+
+# Enable Home Assistant API
+api:
+  encryption: 
+    key: !secret api_password
+
+# Allow Over-The-Air updates
+ota:
+- platform: esphome
+  password: !secret ota_password
+
+# Allow provisioning Wi-Fi via serial
+improv_serial:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+
+sensor:
+  - platform: dht
+    pin: GPIO14
+    temperature:
+      id: temp
+      name: "${name} Temperature"
+      unit_of_measurement: "°F"
+      filters:
+        - lambda: return x * 1.8 + 32;
+    humidity:
+      id: hum
+      name: "${name} Humidity"
+    update_interval: 30s
+    model: DHT22
+# Define a sensor to fetch the current power usage from Home Assistant  
+  - platform: homeassistant
+    id: power_usage
+    entity_id: sensor.car_port_power_draw
+    internal: true
+
+# Define the LCD1602 in parallel mode
+display:
+  - platform: lcd_gpio
+    id: lcd1602
+    dimensions: 16x2
+    data_pins:
+      - GPIO18
+      - GPIO17
+      - GPIO16
+      - GPIO15
+    enable_pin: GPIO23
+    rs_pin: GPIO19
+    lambda: |-
+      // Convert the float to a string with 2 decimal places
+      std::string power_usage_str = std::to_string(id(power_usage).state);
+      // Limit to 2 decimal places
+      if (power_usage_str.find('.') != std::string::npos) {power_usage_str = power_usage_str.substr(0, power_usage_str.find('.') + 3);}
+      // Print info``
+      if (power_usage_str == "nan") {it.print(0, 1, "Thinking...");} 
+      else {
+      power_usage_str += " W";
+      it.print(0, 0, "Power: ");
+      it.print(7, 0, power_usage_str.c_str());
+      }
+
+      //
+      //
+
+      //Weather data
+      std::string temp_str = std::to_string(id(temp).state);
+      std::string hum_str = std::to_string(id(hum).state);
+      if (temp_str.find('.') != std::string::npos) {temp_str = temp_str.substr(0, temp_str.find('.') + 2);}
+      if (hum_str.find('.') != std::string::npos) {hum_str = hum_str.substr(0, hum_str.find('.'));}
+      std::string temp_and_hum_str = "T:" + temp_str + " F | H:" + hum_str + "%";
+      it.print(0, 1, temp_and_hum_str.c_str());
+      
+
+# Define the display update interval
+interval:
+  - interval: 15s
+    then:
+      - component.update: lcd1602
+
+
+# Button definition
+binary_sensor:
+  - platform: gpio
+    pin: GPIO2
+    name: "Toggle Car oport lights"
+    on_press:
+      - homeassistant.service:
+          service: switch.toggle
+          data:
+            entity_id: switch.car_port_lights 
+  - platform: gpio
+    pin: GPIO4
+    name: "Toggle Car oport Muisc"
+    on_press:
+      - homeassistant.service:
+          service: switch.toggle
+          data:
+            entity_id: switch.outside_music_station  
+#   - platform: remote_receiver
+#     name: "Play/Pause Remote Button"
+#     receiver_id: my_reciever
+#     raw:
+#       code:
+#         [0x0000, -0x006D, 0x0022, -0x0000, 0x0164, -0x00AC, 0x0017, -0x0016, 0x0017, -0x0016, 0x0017, -0x0016, 0x0017, -0x0016, 0x0017, -0x0016, 0x0017, -0x0016, 0x0017, -0x0016, 0x0017, -0x003F, 0x0017, -0x003F, 0x0017, -0x003F, 0x0017, -0x003F, 0x0017, -0x003F, 0x0017, -0x0040, 0x0017, -0x003F, 0x0017, -0x003F, 0x0017, -0x0016, 0x0017, -0x0016, 0x0017, -0x0016, 0x0017, -0x0016, 0x0017, -0x0016, 0x0017, -0x003F, 0x0017, -0x0016, 0x0017, -0x003F, 0x0017, -0x003F, 0x0017, -0x003F, 0x0017, -0x003F, 0x0017, -0x003F, 0x0017, -0x003F, 0x0017, -0x0018, 0x0015, -0x0017, 0x003F, -0x0017, 0x0181]
+#       #  "Received Pronto: data=0000 006D 0022 0000 0164 00AC 0017 0016 0017 0016 0017 0016 0017 0016 0017 0016 0017 0016 0017 0016 0017 0016 0017 003F 0017 003F 0017 003F 0017 003F 0017 003F 0017 0040 0017 003F 0017 003F 0017 0016 0017 0016 0017 0016 0017 0016 0017 0016 0017 0016 0017 003F 0017 0016 0017 003F 0017 003F 0017 003F 0017 003F 0017 003F 0017 003F 0018 0015 0017 003F 0017 0181"
+#       #[0000, 006D, 0022, 0000, 0164, 00AC, 0017, 0016, 0017, 0016, 0017, 0016, 0017, 0016, 0017, 0016, 0017, 0016, 0017, 0016, 0017, 0016, 0017, 003F, 0017, 003F, 0017, 003F, 0017, 003F, 0017, 003F, 0017, 0040, 0017, 003F, 0017, 003F, 0017, 0016, 0017, 0016, 0017, 0016, 0017, 0016, 0017, 0016, 0017, 0016, 0017, 003F, 0017, 0016, 0017, 003F, 0017, 003F, 0017, 003F, 0017, 003F, 0017, 003F, 0017, 003F, 0018, 0015, 0017, 003F, 0017, 0181]
+#     on_press:
+#       then:
+#         - homeassistant.service:
+#             service: media_player.media_play_pause
+#             data:
+#               entity_id: media_player.spotify  # Replace with actual Spotify entity ID
+
+
+
+# remote_receiver:
+#   pin: GPIO34
+#   id: my_reciever
+#   dump: all
+
+
+# In combination with the `ap` this allows the user
+# to provision wifi credentials to the device via WiFi AP.
+captive_portal:
+
+dashboard_import:
+  package_import_url: github://esphome/example-configs/esphome-web/esp32.yaml@main
+  import_full_config: true
+
+# Sets up Bluetooth LE (Only on ESP32) to allow the user
+# to provision wifi credentials to the device.
+esp32_improv:
+  authorizer: none
+
+# To have a "next url" for improv serial
+web_server:

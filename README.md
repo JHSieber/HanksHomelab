@@ -18,6 +18,7 @@ In 2022, while working remotely in my first apartment, I started exploring smart
 ## Architecture Overview
 
 - OS: [UnraidOS](https://unraid.net/) Plus
+- Program management: [Docker](https://www.docker.com/)
 - Smart Home: [Home Assistant](https://www.home-assistant.io/) OS (VM)
 - Media Server: [JellyFin](https://jellyfin.org/)
 - File Sync: [Syncthing](https://syncthing.net/)
