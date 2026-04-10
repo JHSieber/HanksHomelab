@@ -1,0 +1,34 @@
+// --- PC SELECTIVE SYNC ---
+// Only keep recent photos and videos
+!/Photos/2024
+!/Photos/2025
+!/Photos/2026
+!/Video/2026
+!/Client work
+!**/Edits
+!**/Edits/**
+!/Business
+!/Hank Solutions
+!/HanksPixLightroom Catalog-v13-5
+
+// Ignore the rest to save SSD space
+/Photos/2018
+/Photos/2019
+/Photos/2020
+/Photos/2021
+/Photos/2022
+/Photos/2023
+/Video/2018
+/Video/2019
+/Video/2020
+/Video/2021
+/Video/2022
+/Video/2023
+/Video/2024
+/Video/2025
+
+**.lrcat-lock
+**.lrcat-journal
+**LOCK
+**.DS_Store
+*

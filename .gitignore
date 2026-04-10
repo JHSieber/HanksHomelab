@@ -1,0 +1,5 @@
+# Gitignore settings for Hanks Homelab
+secrets.yaml
+secrets.h
+libraries/
+hardware/

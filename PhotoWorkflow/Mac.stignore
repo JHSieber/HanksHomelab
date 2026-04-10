@@ -1,0 +1,31 @@
+// --- MAC SELECTIVE SYNC ---
+// Whitelist ONLY current work
+!/Photos/2025/**
+!/Photos/2026/**
+!/Photos/Lightroom/**
+!/HanksPixLightroom Catalog-v13-5/**
+!**/Edits
+!**/Edits/**
+//!/Video/2026/ActiveProjectName
+
+
+// Blacklist everything else
+/Photos/2018
+/Photos/2019
+/Photos/2020
+/Photos/2021
+/Photos/2022
+/Photos/2023
+/Photos/2024
+/Video/2018
+/Video/2019
+/Video/2020
+/Video/2021
+/Video/2022
+/Video/2023
+/Video/2024
+/Video/2025
+LOCK
+.DS_Store
+// The "Safety" ignore: don't download anything else new
+*

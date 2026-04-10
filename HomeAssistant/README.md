@@ -1,10 +1,28 @@
 # Home Assistant
-My HomeAssistant instance is being run as a Virtual machine on my Unraid server. Here I will document the my setup including the [VM config](VM_Config), general homeAssistant configs, specific scripts, automations, and dashboards I have created, and hardware sensors I have built for my network.
+My HomeAssistant instance is being run as a Virtual machine on my Unraid server. Here I will document the my setup including the [VM config](VM_Config.md), general homeAssistant configs, specific scripts, automations, and dashboards I have created, and hardware sensors I have built for my network.
+
+- [Home Assistant](#home-assistant)
+  - [Software:](#software)
+    - [VM](#vm)
+    - [Services](#services)
+    - [States:](#states)
+    - [Automations:](#automations)
+    - [Water main heater](#water-main-heater)
+    - [bedside charging lamp](#bedside-charging-lamp)
+    - [Shell Scripts](#shell-scripts)
+  - [Devices](#devices)
+    - [Hubs:](#hubs)
+    - [Controls:](#controls)
+    - [Sensors:](#sensors)
+  - [Selected Projects:](#selected-projects)
+    - [Timelapse](#timelapse)
+    - [Doorbell:](#doorbell)
+
 
 ## Software: 
 
 ### VM
-I have my VM configured with 2 pinned cpu cores and 2GBs of RAM. I have enabled passthrough for video, audio, and USB interfaces. This is so I can configure it as a endpoint to play music out of and allows me to connect a custom [Thread](https://threadgroup.org/) router board to enable non-native Matter support for my server.
+I have my VM configured with 2 pinned CPU cores and 2GBs of RAM. I have enabled passthrough for video, audio, and USB interfaces. This is so I can configure it as a endpoint to play music out of and allows me to connect a custom [Thread](https://threadgroup.org/) router board to enable non-native Matter support for my server.
 
 
 ### Services
